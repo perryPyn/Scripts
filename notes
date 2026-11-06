@@ -1,0 +1,40 @@
+#!/usr/bin/zsh -f
+
+main () {
+  # Path to notes folder
+  notesPath="$HOME/Drive/Notes"
+  cd "$notesPath" || exit 1
+
+  # Create a new note
+  newNote() {
+    # Choose a directory
+    dir=$(
+    (echo "." && print -l **/*(/N)) | \
+      fzf --layout=reverse --cycle --ghost="Choose a directory :"
+    )
+
+    # Choose a name
+    vared -p "Choose a name : " -c name;
+    if [ -n "$name" ]; then
+      setsid -f "$TERMINAL" -e "$EDITOR" "$dir/$name.md"
+    fi
+    exit 0
+  }
+
+  # Open fzf menu
+  note=$(
+    (echo "New" && print -l **/*(.N)) | \
+      fzf --layout=reverse --cycle --ghost="Choose or Create a Note :" \
+          --preview="cat {}" \
+          --preview-window=right,70%
+  )
+
+  case $note in
+    New) newNote ;;
+    *.md) setsid -f "$TERMINAL" -e "$EDITOR" "./$note" ;;
+    *.(png|jpg)) setsid -f imv "$note" ;;
+    *) exit 0;;
+  esac
+}
+
+main

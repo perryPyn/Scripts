@@ -1,0 +1,40 @@
+#!/usr/bin/zsh -f
+
+main () {
+  # Path to projects folder
+  projectsPath="$HOME/Projects/"
+  cd "$projectsPath" || exit 1
+
+  # Create a new project
+  newProject() {
+    # Choose a template
+    template=$(
+    (cd ~/Templates && print -l **(/N)) | \
+      fzf --layout=reverse --cycle --ghost="Choose a template :"
+    )
+
+    # Choose a name
+    vared -p "Choose a name : " -c name;
+    if [ -n "$name" ]; then
+      cp -r "$HOME/Templates/$template ./$name"
+      setsid -f "$TERMINAL" -e "$EDITOR" "./$name/."
+    fi
+    exit 0
+  }
+
+  # Open fzf menu
+  project=$(
+    (echo "New" && print -l **(/N)) | \
+      fzf --layout=reverse --cycle --ghost="Choose or Create a Project :" \
+  )
+
+  [ -z "$project" ] && exit 0
+
+  case $project in
+    New) newProject ;;
+    *) setsid -f "$TERMINAL" -e "$EDITOR" "./$project"
+;;
+  esac
+}
+
+main

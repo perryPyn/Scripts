@@ -1,0 +1,96 @@
+#!/usr/bin/zsh -f
+
+typeset -A apps
+typeset -A app_list
+
+local SMALL_TERM="footclient"
+
+# Standard .desktop locations (including Flatpak)
+local -a desktop_dirs
+desktop_dirs=(
+  /usr/share/applications
+  /usr/local/share/applications
+  $HOME/.local/share/applications
+  # /var/lib/flatpak/exports/share/applications
+  # $HOME/.local/share/flatpak/exports/share/applications
+)
+
+# We look through usr firt then local to give priority to local
+for dir in $desktop_dirs; do
+  [[ -d $dir ]] || continue
+  for file in $dir/*.desktop(N); do
+    apps[${file:t}]=$file
+  done
+done
+
+main() {
+  local file content section line name exec_cmd noDisplay terminal
+
+  for file in "${apps[@]}"; do
+    # We recover only main entry part
+    content=$(< "$file")
+    section=${content#*\[Desktop Entry\]}
+    section=${section%%$'\n'\[*}
+
+    # We initalize vars
+    name="" exec_cmd="" noDisplay=false terminal=false
+
+    # We extract the name and the exec command
+    for line in "${(f)section}"; do
+      line=${line%%$'\r'}
+
+      if [[ ${(L)line} == "nodisplay=true"* ]]; then
+        noDisplay=true
+      elif [[ ${(L)line} == "terminal=true"* ]]; then
+        terminal=true
+      elif [[ $line == "Name="* && -z $name ]]; then
+        name="${line#Name=}"
+      elif [[ $line == "Exec="* && -z $exec_cmd ]]; then
+        exec_cmd="${line#Exec=}"
+      fi
+    done
+
+    # print $name
+    # print exec_cmd noDisplay terminal
+    # print $exec_cmd $noDisplay $terminal
+
+    # Freedesktop
+    if [[ $noDisplay == false && -n $name && -n $exec_cmd ]]; then
+  #     # Exclude KDE shortcuts
+  #     if [[ -n $onlyShowIn && $onlyShowIn == *"KDE;"* && $XDG_CURRENT_DESKTOP != *"KDE"* ]]; then
+  #       continue
+  #     fi
+  #
+      # Remove specifiers
+      exec_cmd="${exec_cmd//\%[a-zA-Z]/}"
+      # Remove spaces
+      exec_cmd="${exec_cmd% }"
+
+      # Check if terminal app
+      if [[ $terminal == true ]]; then
+        exec_cmd="$SMALL_TERM -e $exec_cmd"
+      fi
+
+      # We add it to the dictionnary
+      app_list[$name]=$exec_cmd
+    fi
+  done
+
+  local selected
+  selected=$(print -l ${(k)app_list} | fzf --layout=reverse --ghost="Run :")
+
+  [[ -z "$selected" ]] && exit 0
+
+  if [[ -n $selected ]]; then
+    local raw_cmd=$app_list[$selected]
+    local cmd="${(e)raw_cmd}"
+    setsid -f ${=cmd} >/dev/null 2>&1
+  fi
+}
+
+main
+
+# # To print keys and values
+# for name exec_cmd in "${(@kv)app_list}"; do
+#   print "$name -> $exec_cmd"
+# done

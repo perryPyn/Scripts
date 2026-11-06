@@ -1,0 +1,45 @@
+#!/usr/bin/zsh -f
+# -f flag is used to avoid parsing through .zshrc
+
+# Launch ghostty instance
+# if [[ ! -t 0 ]]; then
+#   exec $TERMINAL --title=wallpaper-picker -e "$0" "$@"
+# fi
+
+# Normalized path
+cd "$HOME/Pictures/Wallpapers" || exit 1 # Exit if not
+
+# Open list all file (.n) recursively (**/*) with Zsh globbing
+# ( cd in sub-shell and prints all file )
+selected=$(
+  print -l **/*(.N) | \
+    fzf --layout=reverse --cycle --ghost='Choose a Wallpaper :' \
+        --preview="chafa -f symbols {}" \
+        --preview-window=right,75%
+)
+
+# If esc pressed (wich means selected=NULL), we exit
+[ -z "$selected" ] && exit 0
+
+# Update symlink
+ln -sf "$selected" wallpaper
+
+# Relaunch Swaybg
+pkill swaybg
+# setsid allows to force detach swaybg from the selection window
+setsid -f swaybg -i wallpaper > /dev/null 2>&1
+
+# Change theme
+theme=$(
+  echo "Generate\nGruvbox\nOcean\nDune" | \
+    fzf --layout=reverse --cycle --ghost="Choose a Theme :" \
+)
+
+case $theme in
+Generate) flavours generate dark wallpaper \
+          && flavours apply generated ;;
+Gruvbox) flavours apply gruvbox-dark-medium ;;
+Ocean) flavours apply ocean ;;
+Dune) flavours apply atelier-dune ;;
+*) exit 0 ;;
+esac

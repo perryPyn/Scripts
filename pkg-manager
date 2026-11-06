@@ -1,0 +1,43 @@
+#!/usr/bin/zsh -f
+
+main () {
+  # # Path to notes folder
+  # notesPath="$HOME/Drive/Notes"
+  # cd "$notesPath" || exit 1
+
+  # Create a new note
+  install() {
+    pkg=$(
+    (paru -Slq) | \
+      fzf --layout=reverse --cycle --multi --ghost="Choose a package :"
+    )
+
+    echo "$pkg"
+    exit 0
+  }
+
+  uninstall() {
+    pkg=$(
+    (paru -Qeq) | \
+      fzf --layout=reverse --cycle --multi --ghost="Choose a package :"
+    )
+
+    echo "$pkg"
+    exit 0
+  }
+
+  # Open fzf menu
+  action=$(
+    (echo "Install\nUninstall\nUpdate") | \
+      fzf --layout=reverse --cycle --ghost="What to do ?" \
+  )
+
+  case $action in
+    Install) install ;;
+    Uninstall) uninstall ;;
+    Update) sudo pacman -Syu ;;
+    *) exit 0;;
+  esac
+}
+
+main

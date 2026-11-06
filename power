@@ -1,0 +1,19 @@
+#!/usr/bin/zsh -f
+
+# Launch ghostty instance
+if [[ ! -t 0 ]]; then
+  exec $TERMINAL --title=power -e "$0" "$@"
+fi
+
+state=$(echo "Shutdown\nReboot\nSleep\nHibernate\nQuit" | \
+    fzf --layout=reverse --cycle --ghost="What to do" \
+  )
+
+case $state in
+  Shutdown) shutdown now ;;
+  Sleep) echo "require config" ;;
+  Hibernate) echo "require config" ;;
+  Reboot) reboot ;;
+  Quit) niri msg action quit ;;
+  *) exit 0 ;;
+esac
